@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Flashlight with three light rays. Art spans y 8..82; scaled to 70 % and centred so it stays inside the 66 dp safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:pivotX="54"
+        android:pivotY="45"
+        android:scaleX="0.7"
+        android:scaleY="0.7"
+        android:translateY="9">
+        <!-- rays -->
+        <path
+            android:pathData="M54,8 L54,18 M38,13 L43,21 M70,13 L65,21"
+            android:strokeColor="#FFFFC107"
+            android:strokeWidth="4.5"
+            android:strokeLineCap="round" />
+        <!-- head -->
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M37,25 L71,25 L71,33 L64,43 L44,43 L37,33 Z" />
+        <!-- body with a button hole -->
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:fillType="evenOdd"
+            android:pathData="M44,46 L64,46 L64,78 A4,4 0 0 1 60,82 L48,82 A4,4 0 0 1 44,78 Z M54,55 m-3.5,0 a3.5,3.5 0 1 0 7,0 a3.5,3.5 0 1 0 -7,0 Z" />
+    </group>
+</vector>
