@@ -44,6 +44,7 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.LaunchedEffect
 import com.kiro.choptorch.ChopDetector
+import com.kiro.choptorch.Strength
 import com.kiro.choptorch.DetectorParams
 import com.kiro.choptorch.Engine
 import com.kiro.choptorch.ml.LearnEvent
@@ -136,6 +137,7 @@ interface ChopUi {
     val screenOff: Boolean
     val pocketGuard: Boolean
     val vibrate: Boolean
+    val vibrationStrength: Strength
     val batteryExempt: Boolean
     val rootBusy: Boolean
     val peak: Float
@@ -148,6 +150,10 @@ interface ChopUi {
     fun changeCooldown(sec: Float)
     fun changePocketGuard(on: Boolean)
     fun changeVibrate(on: Boolean)
+    /** Saves the strength and plays it once, so you feel the difference. */
+    fun changeVibrationStrength(s: Strength)
+    /** Plays the on buzz, then the off buzz. */
+    fun testVibration()
     fun openBatterySettings()
     fun applyRoot()
     fun testTorch()
@@ -213,6 +219,7 @@ fun ChopScreen(ui: ChopUi) {
             item { ForceCard(ui) }
             item { SensitivityCard(ui) }
             item { DelayCard(ui) }
+            item { VibrationCard(ui) }
             if (ui.engine == Engine.MODEL && ui.model != null) item { LearningCard(ui) }
             group("Behaviour") { BehaviourGroup(ui) }
             group("Keep alive") { KeepAliveGroup(ui) }
@@ -915,18 +922,73 @@ private fun DelayCard(ui: ChopUi) {
     }
 }
 
+/** Vibration on toggle: on/off, strength, and a button to feel it. */
+@Composable
+private fun VibrationCard(ui: ChopUi) {
+    SectionCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Vibration", style = MaterialTheme.typography.titleMediumEmphasized)
+                Text(
+                    "One buzz when the torch turns on, two when it turns off",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Switch(checked = ui.vibrate, onCheckedChange = ui::changeVibrate, modifier = Modifier.padding(start = 12.dp))
+        }
+        AnimatedVisibility(ui.vibrate) {
+            Column {
+                val levels = Strength.entries
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
+                    modifier = Modifier.fillMaxWidth().padding(top = 14.dp),
+                ) {
+                    levels.forEachIndexed { i, s ->
+                        ToggleButton(
+                            checked = ui.vibrationStrength == s,
+                            onCheckedChange = { ui.changeVibrationStrength(s) },
+                            shapes = when (i) {
+                                0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                                levels.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
+                                else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
+                            },
+                            modifier = Modifier.weight(1f).semantics { role = Role.RadioButton },
+                        ) { Text(s.label, maxLines = 1) }
+                    }
+                }
+                OutlinedButton(
+                    onClick = ui::testVibration,
+                    shapes = ButtonDefaults.shapes(),
+                    modifier = Modifier.fillMaxWidth().padding(top = 10.dp).height(ButtonDefaults.MediumContainerHeight),
+                ) {
+                    Icon(Icons.Rounded.Vibration, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Feel it: on, then off", style = ButtonDefaults.textStyleFor(ButtonDefaults.MediumContainerHeight))
+                }
+                Text(
+                    "Still too weak? Raise the touch feedback strength in Settings → Sound & vibration → Vibration & haptics. " +
+                        "This buzz follows that setting.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun BehaviourGroup(ui: ChopUi) {
     val rows = listOf(
         Triple("Only when locked", "Works on the lock screen and with the screen off; paused while you use the phone", Icons.Rounded.Lock),
         Triple("Work with screen off", "Keeps one CPU core awake so the sensor keeps reporting", Icons.Rounded.NightsStay),
         Triple("Pocket guard", "Ignore chops while the proximity sensor is covered", Icons.Rounded.VisibilityOff),
-        Triple("Vibrate on toggle", "One buzz for on, two for off", Icons.Rounded.Vibration),
     )
     rows.forEachIndexed { i, (title, sub, icon) ->
-        val checked = when (i) { 0 -> ui.onlyLocked; 1 -> ui.screenOff; 2 -> ui.pocketGuard; else -> ui.vibrate }
+        val checked = when (i) { 0 -> ui.onlyLocked; 1 -> ui.screenOff; else -> ui.pocketGuard }
         val set: (Boolean) -> Unit = when (i) {
-            0 -> ui::changeOnlyLocked; 1 -> ui::changeScreenOff; 2 -> ui::changePocketGuard; else -> ui::changeVibrate
+            0 -> ui::changeOnlyLocked; 1 -> ui::changeScreenOff; else -> ui::changePocketGuard
         }
         SegmentedListItem(
             checked = checked,

@@ -42,6 +42,18 @@ Source: `app/src/main/java/com/kiro/choptorch/ui/`.
 
 Behaviour → **Only when locked**. Off by default: the gesture works locked and unlocked. When on, the service listens only when the screen is off or the lock screen is showing, and turns the accelerometer off as soon as you unlock (`USER_PRESENT`, plus a re-check 0.4 s and 1.5 s after the screen turns on, for fingerprint and face unlock). While paused, the app and notification show "Paused while unlocked" and nothing is learned. Version 3.3 had this on by default; 3.4 switches it off once on upgrade. With the screen lock set to "None", there is no lock screen, so with this on it only works with the screen off.
 
+## Vibration
+
+The **Vibration** card: one buzz when the torch turns on, two when it turns off, with **Light / Medium / Strong** (default Strong) and a **Feel it** button. The calibration cues use the same strength.
+
+| Strength | On | Off | Amplitude (only if the motor supports it) |
+|---|---|---|---|
+| Light | 80 ms | 60 + 60 ms, 90 ms apart | 150 |
+| Medium | 150 ms | 100 + 100 ms, 110 ms apart | 220 |
+| Strong | 250 ms | 160 + 160 ms, 120 ms apart | 255 |
+
+Since 3.5 the buzz uses Android's hardware-feedback vibration category (the one the fingerprint sensor uses). Before, it had no category, so Android 13+ scaled it by the *media* vibration setting and dropped it in battery saver, and the pulses (60 ms, 2 × 40 ms) were too short for a basic motor to spin up. Hardware feedback follows the touch feedback strength in Settings → Sound & vibration → Vibration & haptics, and still plays in silent mode and battery saver.
+
 ## Delay between toggles
 
 The **Delay between toggles** card sets how long gestures are ignored after one switched the torch: 0.3–2.0 s in 0.1 s steps, default 1.2 s. It applies to Auto, Manual, Model and Test & teach, and takes effect immediately.

@@ -71,6 +71,7 @@ class MainActivity : ComponentActivity(), ChopUi {
     override var screenOff by mutableStateOf(true); private set
     override var pocketGuard by mutableStateOf(true); private set
     override var vibrate by mutableStateOf(true); private set
+    override var vibrationStrength by mutableStateOf(Strength.STRONG); private set
     override var batteryExempt by mutableStateOf(false); private set
     override var rootBusy by mutableStateOf(false); private set
     override var peak by mutableFloatStateOf(0f); private set
@@ -88,6 +89,7 @@ class MainActivity : ComponentActivity(), ChopUi {
         cooldownSec = Prefs.cooldownMs(this) / 1000f
         pocketGuard = Prefs.pocketGuard(this)
         vibrate = Prefs.vibrate(this)
+        vibrationStrength = Prefs.vibrationStrength(this)
         engine = Prefs.engine(this)
         learnEnabled = Prefs.learn(this)
         torch = Torch(this) { on -> torchOn = on }
@@ -316,6 +318,22 @@ class MainActivity : ComponentActivity(), ChopUi {
     override fun changeVibrate(on: Boolean) {
         vibrate = on
         prefs.edit().putBoolean(Prefs.VIBRATE, on).apply()
+        if (on) Haptics.play(this, Buzz.ON, vibrationStrength)
+    }
+
+    override fun changeVibrationStrength(s: Strength) {
+        vibrationStrength = s
+        prefs.edit().putString(Prefs.VIBRATION_STRENGTH, s.name).apply()
+        Haptics.play(this, Buzz.ON, s)
+    }
+
+    private val testHandler = android.os.Handler(android.os.Looper.getMainLooper())
+
+    override fun testVibration() {
+        val s = vibrationStrength
+        testHandler.removeCallbacksAndMessages(null)
+        Haptics.play(this, Buzz.ON, s)
+        testHandler.postDelayed({ Haptics.play(this, Buzz.OFF, s) }, s.onMs + 600)
     }
 
     @SuppressLint("BatteryLife")

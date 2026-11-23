@@ -13,6 +13,7 @@ object Prefs {
     const val ONLY_LOCKED = "only_locked"
     const val POCKET_GUARD = "pocket_guard"
     const val VIBRATE = "vibrate"
+    const val VIBRATION_STRENGTH = "vibration_strength"
     const val ENGINE = "engine"
     const val MODEL_REV = "model_rev"
     const val LEARN = "learn_from_use"
@@ -55,6 +56,9 @@ object Prefs {
             .coerceIn(ChopDetector.MIN_COOLDOWN_MS, ChopDetector.MAX_COOLDOWN_MS)
     fun pocketGuard(ctx: Context) = get(ctx).getBoolean(POCKET_GUARD, true)
     fun vibrate(ctx: Context) = get(ctx).getBoolean(VIBRATE, true)
+    fun vibrationStrength(ctx: Context): Strength =
+        runCatching { Strength.valueOf(get(ctx).getString(VIBRATION_STRENGTH, Strength.STRONG.name)!!) }
+            .getOrDefault(Strength.STRONG)
 
     fun engine(ctx: Context): Engine {
         val p = get(ctx)

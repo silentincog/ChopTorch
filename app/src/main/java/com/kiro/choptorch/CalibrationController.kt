@@ -10,8 +10,6 @@ import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
-import android.os.VibrationEffect
-import android.os.Vibrator
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -167,7 +165,7 @@ class CalibrationController(
                     step(n - 1)
                 } else {
                     cue = Cue.NOW
-                    buzz(Buzz.GO)
+                    buzz(CueBuzz.GO)
                 }
             }, COUNT_STEP_MS)
         }
@@ -178,7 +176,7 @@ class CalibrationController(
         val token = ++cueToken
         cue = Cue.REST
         recordingGesture = false
-        buzz(Buzz.TICK)
+        buzz(CueBuzz.TICK)
         main.postDelayed({ if (token == cueToken) startCountdown() }, REST_MS)
     }
 
@@ -221,7 +219,7 @@ class CalibrationController(
         cue = Cue.DONE
         phase = CalPhase.NORMAL
         sensorHandler?.post { s.startNormal() }
-        buzz(Buzz.DONE)
+        buzz(CueBuzz.DONE)
     }
 
     /** "Finish now" / "Skip" during the normal-use step. */
@@ -249,7 +247,7 @@ class CalibrationController(
                     classicFalseTriggers = out.classicFalseTriggers
                     normalRecordedSeconds = out.normalSeconds
                     phase = CalPhase.RESULT
-                    buzz(Buzz.DONE)
+                    buzz(CueBuzz.DONE)
                 }
             }
             t.quitSafely()
@@ -331,7 +329,7 @@ class CalibrationController(
         testItems.add(0, item)
         while (testItems.size > MAX_TEST_ITEMS) testWindows.remove(testItems.removeAt(testItems.lastIndex).id)
         lastTest = item
-        if (r.matched) buzz(Buzz.TICK)
+        if (r.matched) buzz(CueBuzz.TICK)
     }
 
     override fun teach(id: Int, wasGesture: Boolean) {
@@ -443,17 +441,15 @@ class CalibrationController(
         sensorHandler = null
     }
 
-    private enum class Buzz { GO, TICK, DONE }
+    private enum class CueBuzz { GO, TICK, DONE }
 
-    @Suppress("DEPRECATION")
-    private fun buzz(kind: Buzz) {
-        val v = activity.getSystemService(Vibrator::class.java) ?: return
-        val effect = when (kind) {
-            Buzz.GO -> VibrationEffect.createOneShot(40, VibrationEffect.DEFAULT_AMPLITUDE)
-            Buzz.TICK -> if (Build.VERSION.SDK_INT >= 29) VibrationEffect.createPredefined(VibrationEffect.EFFECT_HEAVY_CLICK)
-            else VibrationEffect.createOneShot(30, VibrationEffect.DEFAULT_AMPLITUDE)
-            Buzz.DONE -> VibrationEffect.createWaveform(longArrayOf(0, 50, 80, 50), -1)
-        }
-        v.vibrate(effect)
-    }
+    /** Calibration cues use the same strength as the torch buzz: GO = one buzz, TICK = short, DONE = two. */
+    private fun buzz(kind: CueBuzz) = Haptics.play(
+        activity,
+        when (kind) {
+            CueBuzz.GO -> com.kiro.choptorch.Buzz.ON
+            CueBuzz.TICK -> com.kiro.choptorch.Buzz.TICK
+            CueBuzz.DONE -> com.kiro.choptorch.Buzz.OFF
+        },
+    )
 }

@@ -22,8 +22,6 @@ import android.os.IBinder
 import android.os.Looper
 import android.os.PowerManager
 import android.os.SystemClock
-import android.os.VibrationEffect
-import android.os.Vibrator
 import android.util.Log
 import com.kiro.choptorch.ml.AutoModelBuilder
 import com.kiro.choptorch.ml.AutoPilot
@@ -443,12 +441,7 @@ class ChopService : Service(), SensorEventListener {
         }
     }
 
-    private fun buzz(on: Boolean) {
-        val v = getSystemService(Vibrator::class.java) ?: return
-        val effect = if (on) VibrationEffect.createOneShot(60, VibrationEffect.DEFAULT_AMPLITUDE)
-        else VibrationEffect.createWaveform(longArrayOf(0, 40, 60, 40), -1)
-        v.vibrate(effect)
-    }
+    private fun buzz(on: Boolean) = Haptics.play(this, if (on) Buzz.ON else Buzz.OFF)
 
     private fun post(msg: String) {
         Log.d("ChopTorch", msg)
