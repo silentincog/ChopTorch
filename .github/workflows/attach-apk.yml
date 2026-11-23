@@ -1,0 +1,53 @@
+# Attaches a release APK to its GitHub release.
+#
+# The APK is built and signed locally (the signing key never leaves that machine), pushed to a
+# temporary branch `upload/<tag>`, and this workflow is started by hand or through the REST API with
+# the tag and the APK's SHA-256. It checks the file, uploads it to the release, and deletes the branch.
+name: Attach APK to release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag, for example v3.4"
+        required: true
+      sha256:
+        description: "Expected SHA-256 of the APK"
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: attach-apk-${{ inputs.tag }}
+
+jobs:
+  attach:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Attach APK and remove the upload branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+          EXPECTED: ${{ inputs.sha256 }}
+        run: |
+          set -euo pipefail
+          [[ "$TAG" =~ ^v[0-9]+(\.[0-9]+)*$ ]] || { echo "Invalid tag: $TAG"; exit 1; }
+          [[ "$EXPECTED" =~ ^[0-9a-f]{64}$ ]] || { echo "Invalid SHA-256"; exit 1; }
+          apk="ChopTorch-${TAG#v}.apk"
+          branch="upload/$TAG"
+
+          git init -q work && cd work
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git fetch -q --depth=1 origin "refs/heads/$branch"
+          git checkout -q FETCH_HEAD -- "$apk"
+
+          actual="$(sha256sum "$apk" | cut -d' ' -f1)"
+          echo "Expected $EXPECTED"
+          echo "Actual   $actual"
+          [[ "$actual" == "$EXPECTED" ]] || { echo "Checksum mismatch, not uploading"; exit 1; }
+
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null
+          gh release upload "$TAG" "$apk" --clobber --repo "$GITHUB_REPOSITORY"
+          git push -q origin --delete "$branch"
+          echo "Attached $apk to $TAG and deleted $branch"
