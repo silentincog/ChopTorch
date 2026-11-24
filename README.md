@@ -3,6 +3,8 @@
 Motorola-style "chop chop" flashlight for the Redmi 10 Prime running crDroid (works on any Android 8+ ROM).
 Hold the phone, chop down twice, and the torch toggles. It works with the phone locked and unlocked, including with the screen off. **Only when locked** limits it to the lock screen and screen off.
 
+Package `dev.incog.choptorch`. Made with ❤ by **incogcyberpunk**. Licensed under the [MIT License](LICENSE). Privacy policy: [PRIVACY.md](PRIVACY.md) (nothing leaves the phone; the app has no internet permission).
+
 ## Download
 
 Get the APK from [Releases](../../releases). Each version has its own release with `ChopTorch-<version>.apk` attached (min Android 8, target Android 14, signed by `CN=incog`).
@@ -24,19 +26,41 @@ Get the APK from [Releases](../../releases). Each version has its own release wi
 
 ## UI (Material 3 Expressive)
 
-- `MaterialExpressiveTheme` with the expressive motion scheme. Colours come from your wallpaper on Android 12+ (Monet); older versions use the expressive colour scheme.
-- `LargeFlexibleTopAppBar` that collapses on scroll.
+- Four tabs in a `ShortNavigationBar`: **Home** (torch, gesture switch, live force), **Gesture** (sensitivity, Auto/Manual/Model, learning, delay, behaviour), **Vibration** (strength and custom timing) and **Settings** (appearance, import, about, legal). Each tab has its own `LargeFlexibleTopAppBar` that collapses on scroll.
+- `MaterialExpressiveTheme` with the expressive motion scheme.
 - Hero card with a shape from `MaterialShapes` that morphs from a cookie (torch off) to a sun (torch on) and spins slowly while the gesture is listening. A shape-morphing `ToggleButton` turns the gesture on and off.
 - Live force readout using `LinearWavyProgressIndicator`, sensitivity `Slider`, settings as `SegmentedListItem` groups, and a `LoadingIndicator` while root commands run.
 
-Source: `app/src/main/java/com/kiro/choptorch/ui/`.
+Source: `app/src/main/java/dev/incog/choptorch/ui/`.
+
+## Themes
+
+Settings → **Appearance**:
+
+- **Colour**: Wallpaper (Android 12+, Monet), Indigo, Ocean, Teal, Forest, Sunset, Rose, Grape or Mono. The fixed colours are full Material 3 tonal palettes generated from a seed colour with Material Color Utilities (`com.materialkolor:material-color-utilities`), so every colour role has proper contrast.
+- **Mode**: System, Light or Dark.
+- **Pure black**: black backgrounds in dark mode, for AMOLED screens.
+
+Code: `ui/Theme.kt`, `ui/SettingsScreen.kt`.
+
+## Settings, about and legal
+
+The Settings tab holds Appearance, **Import from Chop Torch 3.x**, **About** (version, author, link to releases, "Made with ❤ by incogcyberpunk") and **Legal**: privacy policy, MIT licence and open-source licences (Apache 2.0 text included). Texts live in `Legal.kt` and match [LICENSE](LICENSE) and [PRIVACY.md](PRIVACY.md).
 
 ## Install
 
-1. Download the latest `ChopTorch-<version>.apk` from Releases on the phone and install it. It updates an installed 1.0, 2.x or 3.x build only if that build was also signed by `incog`; the very first build used a debug key and must be uninstalled first.
+1. Download the latest `ChopTorch-<version>.apk` from Releases on the phone and install it. 3.x builds signed by `incog` update in place up to 3.5. **4.0 changed the package from `com.kiro.choptorch` to `dev.incog.choptorch`, so Android installs it as a separate app** (see "Moving from 3.x" below). The very first build used a debug key and must be uninstalled first.
 2. Open **Chop Torch** and turn on **Chop gesture enabled**. Allow notifications.
 3. Tap **Open battery settings for this app** and allow it to ignore battery optimisation. The status line should show "Battery exempt: yes".
 4. Optional: pull down Quick Settings → edit → add the **Chop Torch** tile to switch the gesture on and off.
+
+## Moving from 3.x to 4.0
+
+1. Install 4.0. Both apps now show up; while both have the gesture on, one gesture switches the torch twice.
+2. In 4.0: Settings → **Import from Chop Torch 3.x** → **Import (root)**. With root it copies the old settings, personal model, learning history and Auto mode data, then restarts the app and shows what was imported. Without root, teach the gesture again.
+3. Tap **Uninstall 3.x**.
+
+How the import works: the new app creates its own destination files, then a root shell `cat`s the old files into them, so the new files keep the new app's owner and SELinux label. Code: `LegacyImport.kt`.
 
 ## Only when locked (default off)
 
@@ -44,7 +68,9 @@ Behaviour → **Only when locked**. Off by default: the gesture works locked and
 
 ## Vibration
 
-The **Vibration** card: one buzz when the torch turns on, two when it turns off, with **Light / Medium / Strong** (default Strong) and a **Feel it** button. The calibration cues use the same strength.
+The **Vibration** tab: one buzz when the torch turns on, two when it turns off, with **Light / Medium / Strong / Custom** (default Strong) and a **Feel it** button. A timeline draws both patterns to scale. The calibration cues use the same pattern.
+
+**Custom** sets the timing yourself, in 10 ms steps: torch-on buzz 20–600 ms, each torch-off buzz 20–400 ms, pause between them 40–400 ms, and intensity 10–255 if the motor supports amplitude control (otherwise longer buzzes feel stronger). Letting go of a slider plays the result. **Reset** goes back to the Strong values.
 
 | Strength | On | Off | Amplitude (only if the motor supports it) |
 |---|---|---|---|

@@ -11,17 +11,17 @@ val keyPropsFile = rootProject.file("keystore.properties")
 if (keyPropsFile.exists()) keyPropsFile.inputStream().use { stream -> keyProps.load(stream) }
 
 android {
-    namespace = "com.kiro.choptorch"
+    namespace = "dev.incog.choptorch"
     compileSdk {
         version = release(37) { minorApiLevel = 2 }
     }
 
     defaultConfig {
-        applicationId = "com.kiro.choptorch"
+        applicationId = "dev.incog.choptorch"
         minSdk = 26
         targetSdk = 34
-        versionCode = 10
-        versionName = "3.5"
+        versionCode = 11
+        versionName = "4.0"
     }
 
     signingConfigs {
@@ -66,4 +66,6 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.activity:activity-compose:1.13.0")
+    // Material Color Utilities (Kotlin port, MIT/Apache-2.0): builds theme palettes from a seed colour.
+    implementation("com.materialkolor:material-color-utilities:6.0.0")
 }

@@ -6,6 +6,8 @@ inclusion: always
 
 Repo: `silentincog/ChopTorch` (private). The owner downloads the app from GitHub Releases.
 
+Package name since 4.0: `dev.incog.choptorch` (3.x was `com.kiro.choptorch`). Don't change it again: Android would treat it as a new app. Author: incogcyberpunk; licence MIT (`LICENSE`). Keep `Legal.kt` in sync with `LICENSE` and `PRIVACY.md`.
+
 For every new app version:
 
 1. Bump `versionCode` and `versionName` in `app/build.gradle.kts`.
