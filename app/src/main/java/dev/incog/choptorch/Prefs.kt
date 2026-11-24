@@ -37,6 +37,7 @@ object Prefs {
     private const val MIGRATED_AUTO = "migrated_auto"
     private const val MIGRATED_LOCK = "migrated_lock_default"
     const val COOLDOWN = "cooldown_ms"
+    const val SHOW_LOGS = "show_logs"
 
     /** Keys the screens watch to show Auto-mode progress. */
     val AUTO_KEYS = setOf(AUTO_THRESHOLD, AUTO_FORCES, AUTO_GESTURES, AUTO_EVERYDAY, AUTO_MODEL_AT)
@@ -64,6 +65,8 @@ object Prefs {
     fun cooldownMs(ctx: Context): Long =
         get(ctx).getInt(COOLDOWN, ChopDetector.COOLDOWN_MS.toInt()).toLong()
             .coerceIn(ChopDetector.MIN_COOLDOWN_MS, ChopDetector.MAX_COOLDOWN_MS)
+    /** Advanced: show "View logs" on Home. Off by default. */
+    fun showLogs(ctx: Context) = get(ctx).getBoolean(SHOW_LOGS, false)
     fun pocketGuard(ctx: Context) = get(ctx).getBoolean(POCKET_GUARD, true)
     fun vibrate(ctx: Context) = get(ctx).getBoolean(VIBRATE, true)
     fun vibrationStrength(ctx: Context): Strength =

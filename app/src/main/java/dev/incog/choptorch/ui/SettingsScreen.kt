@@ -1,5 +1,8 @@
 package dev.incog.choptorch.ui
 
+import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.rounded.DeleteSweep
+import androidx.compose.material.icons.automirrored.rounded.ReceiptLong
 import android.os.Build
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -86,6 +89,8 @@ enum class SettingsPage(val title: String) {
     PRIVACY("Privacy policy"),
     LICENSE("Licence"),
     THIRD_PARTY("Open-source licences"),
+    /** Opened from Home with "View logs" (Settings → Advanced → Show gesture log). */
+    LOGS("Gesture log"),
 }
 
 /** The Settings tab. */
@@ -94,8 +99,23 @@ internal fun LazyListScope.settingsItems(ui: ChopUi, openPage: (SettingsPage) ->
     item { AppearanceCard(ui) }
     group("Behaviour") { BehaviourGroup(ui) }
     group("Keep alive") { KeepAliveGroup(ui) }
+    group("Advanced") { AdvancedGroup(ui) }
     item { AboutCard(ui) }
     group("Legal") { LegalGroup(openPage) }
+}
+
+/** Advanced: things most people never need. */
+@Composable
+private fun AdvancedGroup(ui: ChopUi) {
+    SegmentedListItem(
+        checked = ui.showLogs,
+        onCheckedChange = ui::changeShowLogs,
+        shapes = ListItemDefaults.segmentedShapes(index = 0, count = 1),
+        colors = rowColors(),
+        leadingContent = { LeadingIcon(Icons.AutoMirrored.Rounded.ReceiptLong) },
+        supportingContent = { Text("Shows View logs on Home: every chop, match and decision, for troubleshooting") },
+        trailingContent = { Switch(checked = ui.showLogs, onCheckedChange = null) },
+    ) { Text("Show gesture log") }
 }
 
 /** Theme: light/dark/system, palette swatches, and pure black. */
@@ -368,6 +388,15 @@ internal fun SettingsPageScreen(page: SettingsPage, ui: ChopUi, onBack: () -> Un
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back") }
                 },
+                actions = {
+                    if (page == SettingsPage.LOGS && ui.log.isNotEmpty()) {
+                        TextButton(onClick = ui::clearLog) {
+                            Icon(Icons.Rounded.DeleteSweep, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Clear")
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
             )
         },
@@ -381,6 +410,7 @@ internal fun SettingsPageScreen(page: SettingsPage, ui: ChopUi, onBack: () -> Un
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             when (page) {
+                SettingsPage.LOGS -> logItems(ui)
                 SettingsPage.PRIVACY -> {
                     item {
                         Text(

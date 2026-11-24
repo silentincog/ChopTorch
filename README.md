@@ -5,6 +5,8 @@ Hold the phone, chop down twice, and the torch toggles. It works with the phone 
 
 Package `dev.incog.choptorch`. Made with ❤ by **incogcyberpunk**. Licensed under the [MIT License](LICENSE). Privacy policy: [PRIVACY.md](PRIVACY.md) (nothing leaves the phone; the app has no internet permission).
 
+**How the machine learning works:** [docs/ML_AND_LEARNING.md](docs/ML_AND_LEARNING.md) explains the classic detector, the personal model (k-nearest neighbours with dynamic time warping), on-device learning and Auto mode, with every formula, constant and file format.
+
 ## Download
 
 Get the APK from [Releases](../../releases). Each version has its own release with `ChopTorch-<version>.apk` attached (min Android 8, target Android 14, signed by `CN=incog`).
@@ -26,7 +28,7 @@ Get the APK from [Releases](../../releases). Each version has its own release wi
 
 ## UI (Material 3 Expressive)
 
-- Four tabs in a floating tab bar (`HorizontalFloatingToolbar`, since 4.1) that hovers above the content: the selected tab is a filled pill with icon and label, the others show only their icon. Tabs: **Home** (torch, gesture switch, live force), **Gesture** (sensitivity, Auto/Manual/Model, learning, delay, behaviour), **Vibration** (strength and custom timing) and **Settings** (appearance, import, about, legal). Each tab has its own `LargeFlexibleTopAppBar` that collapses on scroll.
+- Four tabs in a floating tab bar (`HorizontalFloatingToolbar`, since 4.1) that hovers above the content: the selected tab is a filled pill with icon and label, the others show only their icon. Swipe the bar sideways to move to the next (right) or previous (left) tab; a long swipe moves one tab per 56 dp, with a haptic tick for each (since 4.2). Tabs: **Home** (torch, gesture switch, live force), **Gesture** (sensitivity, Auto/Manual/Model, learning, delay, behaviour), **Vibration** (strength and custom timing) and **Settings** (appearance, import, about, legal). Each tab has its own `LargeFlexibleTopAppBar` that collapses on scroll.
 - `MaterialExpressiveTheme` with the expressive motion scheme.
 - Hero card with a shape from `MaterialShapes` that morphs from a cookie (torch off) to a sun (torch on) and spins slowly while the gesture is listening. A shape-morphing `ToggleButton` turns the gesture on and off.
 - Live force readout using `LinearWavyProgressIndicator`, sensitivity `Slider`, settings as `SegmentedListItem` groups, and a `LoadingIndicator` while root commands run.
@@ -45,7 +47,7 @@ Code: `ui/Theme.kt`, `ui/SettingsScreen.kt`.
 
 ## Settings, about and legal
 
-The Settings tab holds Appearance, **Import from Chop Torch 3.x**, **About** (version, author, link to releases, "Made with ❤ by incogcyberpunk") and **Legal**: privacy policy, MIT licence and open-source licences (Apache 2.0 text included). Texts live in `Legal.kt` and match [LICENSE](LICENSE) and [PRIVACY.md](PRIVACY.md).
+The Settings tab holds Appearance, **Import from Chop Torch 3.x**, **Advanced**, **About** (version, author, link to releases, "Made with ❤ by incogcyberpunk") and **Legal**: privacy policy, MIT licence and open-source licences (Apache 2.0 text included). Texts live in `Legal.kt` and match [LICENSE](LICENSE) and [PRIVACY.md](PRIVACY.md).
 
 ## Install
 
@@ -142,7 +144,7 @@ Simulation (5.6 simulated days, 160 uses, synthetic data): with the gesture drif
 
 ## Tuning
 
-The app shows a live force meter and a gesture log.
+The app shows a live force meter on Home. The gesture log is hidden by default: turn on Settings → Advanced → **Show gesture log**, then tap **View logs** on Home. The log page lists every event, newest first (the last 200 lines while the app is open), with **Clear** in the top bar.
 
 - Easiest: use **Calibrate to my gesture**. By hand: the − / + buttons move the trigger force in 0.5 m/s² steps; the slider is continuous from 6 to 40 (left = light chop, right = firm chop).
 - Default trigger force is 14 m/s². Going below about 10 m/s² causes false triggers while running.

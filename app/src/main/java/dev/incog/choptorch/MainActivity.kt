@@ -85,6 +85,7 @@ class MainActivity : ComponentActivity(), ChopUi {
     override var rootBusy by mutableStateOf(false); private set
     override var peak by mutableFloatStateOf(0f); private set
     override val log = mutableStateListOf<String>()
+    override var showLogs by mutableStateOf(false); private set
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -97,6 +98,7 @@ class MainActivity : ComponentActivity(), ChopUi {
         onlyLocked = Prefs.onlyLocked(this)
         cooldownSec = Prefs.cooldownMs(this) / 1000f
         pocketGuard = Prefs.pocketGuard(this)
+        showLogs = Prefs.showLogs(this)
         vibrate = Prefs.vibrate(this)
         vibrationStrength = Prefs.vibrationStrength(this)
         customPattern = Prefs.customPattern(this)
@@ -435,9 +437,19 @@ class MainActivity : ComponentActivity(), ChopUi {
 
     override fun clearLog() = log.clear()
 
+    override fun changeShowLogs(on: Boolean) {
+        showLogs = on
+        prefs.edit().putBoolean(Prefs.SHOW_LOGS, on).apply()
+    }
+
+    private companion object {
+        /** Lines kept in the gesture log while the app is open. */
+        const val MAX_LOG = 200
+    }
+
     private fun addLog(line: String) {
         log.add(0, line)
-        while (log.size > 40) log.removeAt(log.lastIndex)
+        while (log.size > MAX_LOG) log.removeAt(log.lastIndex)
     }
 
     private fun askNotificationPermission() {

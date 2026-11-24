@@ -1,5 +1,12 @@
 package dev.incog.choptorch.ui
 
+import androidx.compose.material.icons.automirrored.rounded.ReceiptLong
+import androidx.compose.ui.platform.testTag
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.foundation.border
 import androidx.compose.animation.expandHorizontally
@@ -189,6 +196,8 @@ interface ChopUi {
     val rootBusy: Boolean
     val peak: Float
     val log: List<String>
+    /** Advanced setting: Home shows "View logs", which opens the gesture log. */
+    val showLogs: Boolean
 
     fun toggleGesture(on: Boolean)
     fun changeThreshold(t: Float)
@@ -211,6 +220,7 @@ interface ChopUi {
     fun applyRoot()
     fun testTorch()
     fun clearLog()
+    fun changeShowLogs(on: Boolean)
     fun applyPreset(p: DetectorParams)
     fun saveCurrentAsPreset()
     fun openCalibration()
@@ -262,7 +272,7 @@ fun ChopScreen(ui: ChopUi, initialTab: Tab = Tab.HOME) {
                     Tab.HOME -> TabScaffold("Chop Torch", statusLine(ui)) {
                         item { HeroCard(ui) }
                         item { ForceCard(ui) }
-                        item { LogCard(ui) }
+                        if (ui.showLogs) item { ViewLogsLink(onClick = { page = SettingsPage.LOGS }) }
                     }
                     Tab.GESTURE -> TabScaffold("Gesture", "How your gesture is recognised") {
                         item { SensitivityCard(ui) }
@@ -299,9 +309,50 @@ private val FloatingBarMargin = 16.dp
 /** Bottom padding that lets the last card scroll clear of the floating tab bar. */
 internal val FloatingBarClearance = 64.dp + FloatingBarMargin * 2
 
+/** Dragging this far along the tab bar moves one tab. */
+private val SwipeStep = 56.dp
+/** A shorter swipe still moves one tab, once it is past this. */
+private val SwipeMin = 24.dp
+
+/**
+ * Swipe sideways on the tab bar to change tab: drag right for the next tab, left for the previous.
+ * A long drag moves one tab for every [SwipeStep], with a tick for each. It stops at the first
+ * and last tab. Taps still go to the buttons: the drag only starts after the touch slop.
+ */
+private fun Modifier.swipeTabs(selected: () -> Tab, onSelect: (Tab) -> Unit, tick: () -> Unit) = pointerInput(Unit) {
+    val step = SwipeStep.toPx()
+    val min = SwipeMin.toPx()
+    var acc = 0f
+    var moved = false
+    // Tracked here, not read back from the screen: several steps can happen before it recomposes.
+    var index = 0
+    fun go(dir: Int): Boolean {
+        val i = index + dir
+        if (i !in Tab.entries.indices) return false
+        index = i
+        onSelect(Tab.entries[i])
+        tick()
+        return true
+    }
+    detectHorizontalDragGestures(
+        onDragStart = { acc = 0f; moved = false; index = selected().ordinal },
+        onDragEnd = { if (!moved && abs(acc) >= min) go(if (acc > 0) 1 else -1) },
+        onDragCancel = { acc = 0f },
+    ) { change, dx ->
+        change.consume()
+        acc += dx
+        while (abs(acc) >= step) {
+            val dir = if (acc > 0) 1 else -1
+            acc -= dir * step
+            if (go(dir)) moved = true else acc = 0f
+        }
+    }
+}
+
 /**
  * Floating tab bar: an M3 Expressive floating toolbar that hovers over the content.
  * The selected tab is a filled pill with icon and label; the others show only their icon.
+ * Tap a tab, or swipe the bar sideways to move to the next or previous tab.
  */
 @Composable
 private fun FloatingTabs(selected: Tab, onSelect: (Tab) -> Unit) {
@@ -309,6 +360,9 @@ private fun FloatingTabs(selected: Tab, onSelect: (Tab) -> Unit) {
     val effects = MaterialTheme.motionScheme.fastEffectsSpec<Float>()
     val scheme = MaterialTheme.colorScheme
     val barColor = if (scheme.surface.luminance() < 0.5f) scheme.surfaceBright else scheme.surfaceContainerHighest
+    val haptics = LocalHapticFeedback.current
+    val current by rememberUpdatedState(selected)
+    val select by rememberUpdatedState(onSelect)
     HorizontalFloatingToolbar(
         expanded = true,
         // Dark cards are lighter than the container tones, so dark themes use the brightest surface.
@@ -319,6 +373,8 @@ private fun FloatingTabs(selected: Tab, onSelect: (Tab) -> Unit) {
         ),
         modifier = Modifier
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
+            .swipeTabs({ current }, { select(it) }, { haptics.performHapticFeedback(HapticFeedbackType.SegmentTick) })
+            .testTag("floating_tabs")
             .selectableGroup(),
     ) {
         Tab.entries.forEach { t ->
@@ -1329,41 +1385,50 @@ internal fun KeepAliveGroup(ui: ChopUi) {
     ) { Text("Test torch") }
 }
 
+/** Home: opens the gesture log. Shown only with Settings → Advanced → Show gesture log. */
 @Composable
-private fun LogCard(ui: ChopUi) {
-    SectionCard {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Gesture log", style = MaterialTheme.typography.titleMediumEmphasized, modifier = Modifier.weight(1f))
-            FilledTonalButton(onClick = ui::clearLog, shapes = ButtonDefaults.shapes()) {
-                Icon(Icons.Rounded.DeleteSweep, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(6.dp))
-                Text("Clear")
-            }
+private fun ViewLogsLink(onClick: () -> Unit) {
+    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        TextButton(onClick = onClick, shapes = ButtonDefaults.shapes()) {
+            Icon(Icons.AutoMirrored.Rounded.ReceiptLong, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text("View logs")
         }
-        Spacer(Modifier.height(8.dp))
-        AnimatedContent(targetState = ui.log.isEmpty(), label = "log") { empty ->
-            if (empty) {
-                Text(
-                    "Chop the phone and events show up here.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            } else {
-                Column(
-                    Modifier
-                        .fillMaxWidth()
-                        .clip(MaterialTheme.shapes.large)
-                        .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-                        .padding(12.dp),
-                ) {
-                    ui.log.take(25).forEach { line ->
-                        Text(
-                            line,
-                            fontFamily = FontFamily.Monospace,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (line.contains("TORCH")) MaterialTheme.colorScheme.tertiary
-                            else MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+    }
+}
+
+/** The gesture log page: every event, newest first. */
+internal fun LazyListScope.logItems(ui: ChopUi) {
+    item {
+        Text(
+            "What the gesture engine saw and decided, newest first. " +
+                "Recorded while the app is open; the last 200 lines are kept until you close it.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 4.dp),
+        )
+    }
+    item {
+        SectionCard {
+            AnimatedContent(targetState = ui.log.isEmpty(), label = "log") { empty ->
+                if (empty) {
+                    Text(
+                        "Nothing yet. Do your gesture and events show up here.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        ui.log.forEach { line ->
+                            Text(
+                                line,
+                                fontFamily = FontFamily.Monospace,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (line.contains("TORCH") || line.contains("torch ON") || line.contains("torch OFF"))
+                                    MaterialTheme.colorScheme.tertiary
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 }
             }
