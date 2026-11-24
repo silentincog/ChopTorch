@@ -1,5 +1,23 @@
 package dev.incog.choptorch.ui
 
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.foundation.border
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.HorizontalFloatingToolbar
+import androidx.compose.material3.FloatingToolbarDefaults
+import androidx.compose.material3.ToggleButtonShapes
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -41,8 +59,6 @@ import androidx.compose.material.icons.outlined.Vibration
 import androidx.compose.material.icons.rounded.Gesture
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material3.ShortNavigationBar
-import androidx.compose.material3.ShortNavigationBarItem
 import dev.incog.choptorch.Buzz
 import dev.incog.choptorch.VibrationPattern
 import androidx.compose.material.icons.rounded.Add
@@ -232,29 +248,11 @@ fun ChopScreen(ui: ChopUi, initialTab: Tab = Tab.HOME) {
     var page by rememberSaveable { mutableStateOf<SettingsPage?>(null) }
     BackHandler(enabled = page != null) { page = null }
     BackHandler(enabled = page == null && tab != Tab.HOME) { tab = Tab.HOME }
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        contentWindowInsets = WindowInsets(0),
-        bottomBar = {
-            AnimatedVisibility(page == null, enter = fadeIn(), exit = fadeOut()) {
-                ShortNavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh) {
-                    Tab.entries.forEach { t ->
-                        ShortNavigationBarItem(
-                            selected = tab == t,
-                            onClick = { tab = t },
-                            icon = { Icon(if (tab == t) t.selectedIcon else t.icon, contentDescription = null) },
-                            label = { Text(t.label) },
-                        )
-                    }
-                }
-            }
-        },
-    ) { outer ->
+    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainer)) {
         val effects = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
         AnimatedContent(
             targetState = page to tab,
             transitionSpec = { fadeIn(effects) togetherWith fadeOut(effects) },
-            modifier = Modifier.padding(bottom = outer.calculateBottomPadding()),
             label = "tab",
         ) { (pg, t) ->
             if (pg != null) {
@@ -278,6 +276,81 @@ fun ChopScreen(ui: ChopUi, initialTab: Tab = Tab.HOME) {
                     Tab.SETTINGS -> TabScaffold("Settings", "Chop Torch ${ui.appVersion}") {
                         settingsItems(ui, openPage = { page = it })
                     }
+                }
+            }
+        }
+        AnimatedVisibility(
+            visible = page == null,
+            enter = slideInVertically { it * 2 } + fadeIn(),
+            exit = slideOutVertically { it * 2 } + fadeOut(),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .padding(bottom = FloatingBarMargin),
+        ) {
+            FloatingTabs(selected = tab, onSelect = { tab = it })
+        }
+    }
+}
+
+/** Gap between the floating tab bar and the bottom edge (above the gesture/navigation bar). */
+private val FloatingBarMargin = 16.dp
+
+/** Bottom padding that lets the last card scroll clear of the floating tab bar. */
+internal val FloatingBarClearance = 64.dp + FloatingBarMargin * 2
+
+/**
+ * Floating tab bar: an M3 Expressive floating toolbar that hovers over the content.
+ * The selected tab is a filled pill with icon and label; the others show only their icon.
+ */
+@Composable
+private fun FloatingTabs(selected: Tab, onSelect: (Tab) -> Unit) {
+    val spatial = MaterialTheme.motionScheme.fastSpatialSpec<IntSize>()
+    val effects = MaterialTheme.motionScheme.fastEffectsSpec<Float>()
+    val scheme = MaterialTheme.colorScheme
+    val barColor = if (scheme.surface.luminance() < 0.5f) scheme.surfaceBright else scheme.surfaceContainerHighest
+    HorizontalFloatingToolbar(
+        expanded = true,
+        // Dark cards are lighter than the container tones, so dark themes use the brightest surface.
+        // The outline keeps the bar distinct over any card, also where shadows don't show (dark, pure black).
+        colors = FloatingToolbarDefaults.standardFloatingToolbarColors(
+            toolbarContainerColor = barColor,
+            toolbarContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        ),
+        modifier = Modifier
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
+            .selectableGroup(),
+    ) {
+        Tab.entries.forEach { t ->
+            val on = t == selected
+            ToggleButton(
+                checked = on,
+                onCheckedChange = { onSelect(t) },
+                shapes = ToggleButtonShapes(CircleShape, MaterialTheme.shapes.medium, CircleShape),
+                colors = ToggleButtonDefaults.colors(
+                    containerColor = Color.Transparent,
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    checkedContainerColor = MaterialTheme.colorScheme.primary,
+                    checkedContentColor = MaterialTheme.colorScheme.onPrimary,
+                ),
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                modifier = Modifier
+                    .height(48.dp)
+                    .semantics {
+                        role = Role.Tab
+                        this.selected = on
+                    },
+            ) {
+                Icon(
+                    if (on) t.selectedIcon else t.icon,
+                    contentDescription = if (on) null else t.label,
+                )
+                AnimatedVisibility(
+                    visible = on,
+                    enter = expandHorizontally(spatial) + fadeIn(effects),
+                    exit = shrinkHorizontally(spatial) + fadeOut(effects),
+                ) {
+                    Text(t.label, maxLines = 1, modifier = Modifier.padding(start = 8.dp))
                 }
             }
         }
@@ -311,7 +384,9 @@ internal fun TabScaffold(title: String, subtitle: String?, content: LazyListScop
         },
     ) { inner ->
         LazyColumn(
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = inner.calculateTopPadding() + 8.dp, bottom = 24.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = inner.calculateTopPadding() + 8.dp,
+                bottom = FloatingBarClearance + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(),
+            ),
             verticalArrangement = Arrangement.spacedBy(12.dp),
             content = content,
         )

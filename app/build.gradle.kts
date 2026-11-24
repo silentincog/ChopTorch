@@ -20,8 +20,8 @@ android {
         applicationId = "dev.incog.choptorch"
         minSdk = 26
         targetSdk = 34
-        versionCode = 11
-        versionName = "4.0"
+        versionCode = 12
+        versionName = "4.1"
     }
 
     signingConfigs {

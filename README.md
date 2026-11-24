@@ -26,7 +26,7 @@ Get the APK from [Releases](../../releases). Each version has its own release wi
 
 ## UI (Material 3 Expressive)
 
-- Four tabs in a `ShortNavigationBar`: **Home** (torch, gesture switch, live force), **Gesture** (sensitivity, Auto/Manual/Model, learning, delay, behaviour), **Vibration** (strength and custom timing) and **Settings** (appearance, import, about, legal). Each tab has its own `LargeFlexibleTopAppBar` that collapses on scroll.
+- Four tabs in a floating tab bar (`HorizontalFloatingToolbar`, since 4.1) that hovers above the content: the selected tab is a filled pill with icon and label, the others show only their icon. Tabs: **Home** (torch, gesture switch, live force), **Gesture** (sensitivity, Auto/Manual/Model, learning, delay, behaviour), **Vibration** (strength and custom timing) and **Settings** (appearance, import, about, legal). Each tab has its own `LargeFlexibleTopAppBar` that collapses on scroll.
 - `MaterialExpressiveTheme` with the expressive motion scheme.
 - Hero card with a shape from `MaterialShapes` that morphs from a cookie (torch off) to a sun (torch on) and spins slowly while the gesture is listening. A shape-morphing `ToggleButton` turns the gesture on and off.
 - Live force readout using `LinearWavyProgressIndicator`, sensitivity `Slider`, settings as `SegmentedListItem` groups, and a `LoadingIndicator` while root commands run.
